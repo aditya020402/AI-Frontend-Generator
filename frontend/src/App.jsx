@@ -18,10 +18,9 @@ import Login from './components/Login';
 import Register from './components/Register';
 import LibraryDashboard from './components/LibraryDashboard';
 import EditorLayout from './components/EditorLayout';
-import { useComponentStore } from './stores/componentStore';
 
-// Auth Context Provider
-const AuthContext = React.createContext();
+// Auth Context
+export const AuthContext = React.createContext();
 
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -34,8 +33,8 @@ function AuthProvider({ children }) {
       if (token) {
         try {
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          // Optional: Verify token with backend
-          setUser({ id: 'initialized' });
+          // Optional: Verify token validity
+          setUser({ id: 'initialized', token });
         } catch (error) {
           localStorage.removeItem('token');
           delete axios.defaults.headers.common['Authorization'];
@@ -44,7 +43,6 @@ function AuthProvider({ children }) {
       setInitializing(false);
       setLoading(false);
     };
-
     initAuth();
   }, []);
 
@@ -72,22 +70,24 @@ function AuthProvider({ children }) {
   );
 }
 
-// Protected Route Component
 function ProtectedRoute({ children }) {
   const { user, loading } = React.useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!loading && !user) {
-      navigate('/register', { replace: true, state: { from: location } });
+      navigate('/login', { replace: true, state: { from: location } });
     }
   }, [user, loading, navigate, location]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <CircularProgress size={48} className="text-primary-600" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
+        <div className="flex flex-col items-center gap-4">
+          <CircularProgress size={48} />
+          <div className="text-lg font-medium text-gray-700">Loading...</div>
+        </div>
       </div>
     );
   }
@@ -95,62 +95,22 @@ function ProtectedRoute({ children }) {
   return user ? children : null;
 }
 
-// Public Route Component (redirect if logged in)
 function PublicRoute({ children }) {
   const { user } = React.useContext(AuthContext);
-  return user ? <Navigate to="/" replace /> : children;
+  return user ? <Navigate to="/library" replace /> : children;
 }
 
 function AppContent() {
   return (
     <Router>
       <Routes>
-        {/* Auth Routes */}
-        <Route 
-          path="/login" 
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          } 
-        />
-        <Route 
-          path="/register" 
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          } 
-        />
-        
-        {/* Protected Routes */}
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <LibraryDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/editor/:id" 
-          element={
-            <ProtectedRoute>
-              <EditorLayout />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/editor/new" 
-          element={
-            <ProtectedRoute>
-              <EditorLayout />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/register" replace />} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/library" element={<ProtectedRoute><LibraryDashboard /></ProtectedRoute>} />
+        <Route path="/editor/:id" element={<ProtectedRoute><EditorLayout /></ProtectedRoute>} />
+        <Route path="/editor/new" element={<ProtectedRoute><EditorLayout /></ProtectedRoute>} />
+        <Route path="/" element={<Navigate to="/library" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
@@ -159,30 +119,14 @@ function AppContent() {
 const theme = createTheme({
   palette: {
     mode: 'light',
-    primary: { 
-      main: '#3b82f6',
-      light: '#60a5fa',
-      dark: '#1d4ed8'
-    },
+    primary: { main: '#3b82f6' },
     secondary: { main: '#10b981' },
-    background: {
-      default: '#f9fafb',
-      paper: '#ffffff'
-    }
+    background: { default: '#f8fafc', paper: '#ffffff' }
   },
-  shape: {
-    borderRadius: 12
-  },
+  shape: { borderRadius: 12 },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: { fontWeight: 700 },
-    h2: { fontWeight: 600 },
-    h3: { fontWeight: 600 },
-    h6: { fontWeight: 600 },
-    button: { 
-      textTransform: 'none',
-      fontWeight: 600 
-    }
+    button: { textTransform: 'none', fontWeight: 600 }
   },
   components: {
     MuiButton: {
@@ -192,13 +136,6 @@ const theme = createTheme({
           textTransform: 'none',
           fontWeight: 600,
           padding: '12px 24px'
-        }
-      }
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          borderRadius: 16
         }
       }
     }
