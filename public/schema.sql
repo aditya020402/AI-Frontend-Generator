@@ -41,24 +41,55 @@ CREATE TABLE component_versions (
 );
 
 
--- Components indexes (MOST IMPORTANT)
+-- ========================================
+-- USERS TABLE INDEXES
+-- ========================================
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_username ON users(username);     -- Login/search
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_created ON users(created_at DESC); -- Recent users
+
+-- ========================================
+-- COMPONENTS TABLE INDEXES (MOST CRITICAL)
+-- ========================================
+-- User dashboard (80% of queries)
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_user_id ON components(user_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_user_updated ON components(user_id, updated_at DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_name ON components USING GIN(to_tsvector('english', name));
+
+-- Library search/filter (name, framework, status)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_name_trgm ON components USING GIN(name gin_trgm_ops); -- Fuzzy search
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_framework ON components(framework);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_status ON components(status);
+CREATE INDEX CONCONCURRENTLY IF NOT EXISTS idx_components_status ON components(status);
+
+-- JSONB CSS props search (color, padding queries)
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_css_props ON components USING GIN(css_props);
 
--- Chat indexes
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_component_time ON chat_messages(component_id, timestamp DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_role_time ON chat_messages(role, timestamp DESC);
+-- Timestamps
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_created ON components(created_at DESC);
 
--- Users indexes
-CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_users_username ON users(username);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_email ON users(email);
+-- ========================================
+-- CONVERSATIONS TABLE (CHAT HISTORY)
+-- ========================================
+-- Chat loading by component (99% of chat queries)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_conversations_comp_time ON conversations(component_id, timestamp DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_conversations_user_time ON conversations(user_id, timestamp DESC);
 
--- Analyze tables for query planner
-ANALYZE components;
-ANALYZE chat_messages;
+-- Role filtering (user vs assistant)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_conversations_role ON conversations(role);
+
+-- JSONB metadata search
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_conversations_metadata ON conversations USING GIN(metadata);
+
+-- ========================================
+-- COMPONENT_VERSIONS TABLE
+-- ========================================
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_versions_comp_num ON component_versions(component_id, version_number DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_versions_comp_created ON component_versions(component_id, created_at DESC);
+
+-- ========================================
+-- ANALYZE FOR QUERY PLANNER
+-- ========================================
 ANALYZE users;
+ANALYZE components;
+ANALYZE conversations; 
+ANALYZE component_versions;
+
 
