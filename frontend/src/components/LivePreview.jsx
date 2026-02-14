@@ -13,8 +13,25 @@ export default function LivePreview() {
   const { currentComponent, framework } = useComponentStore();
 
   // ✅ SAFE CODE EXTRACTION - No undefined errors
-  const code = currentComponent?.current_code || '';
-  const isEmpty = !code || code.trim() === '' || code.includes('// Generating...');
+  const code = currentComponent?.current_code || `
+    function DefaultPreview() {
+      return (
+        <div className="p-8 bg-white rounded-2xl shadow-xl border border-gray-200 max-w-md mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Welcome! 👋</h2>
+          <p className="text-gray-600 mb-8">Select a component or chat with AI to generate code</p>
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+            Ready to Build ✨
+          </button>
+        </div>
+      );
+    }
+    export default DefaultPreview;
+    `;
+    
+  const isEmpty = !code || 
+                  code.trim() === '' || 
+                  code.trim() === '// Generating...' || 
+                  code.includes('function') === false;
   
   // ✅ SAFE REACT DETECTION
   const isReact = framework === 'react' || 
