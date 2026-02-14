@@ -39,3 +39,26 @@ CREATE TABLE component_versions (
   change_summary TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+
+-- Components indexes (MOST IMPORTANT)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_user_id ON components(user_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_user_updated ON components(user_id, updated_at DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_name ON components USING GIN(to_tsvector('english', name));
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_framework ON components(framework);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_status ON components(status);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_components_css_props ON components USING GIN(css_props);
+
+-- Chat indexes
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_component_time ON chat_messages(component_id, timestamp DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_role_time ON chat_messages(role, timestamp DESC);
+
+-- Users indexes
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_email ON users(email);
+
+-- Analyze tables for query planner
+ANALYZE components;
+ANALYZE chat_messages;
+ANALYZE users;
+
