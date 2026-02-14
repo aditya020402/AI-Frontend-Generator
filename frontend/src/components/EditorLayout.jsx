@@ -1,65 +1,95 @@
 import React from 'react';
-import {
-  Box, Grid, AppBar, Toolbar, Typography, Select,
-  MenuItem, Button, TextField, IconButton, Paper
-} from '@mui/material';
-import { Editor, LivePreview, ChatSidebar, PropertyPanel } from './index';
-import CodeIcon from '@mui/icons-material/Code';
-import SaveIcon from '@mui/icons-material/Save';
-import DownloadIcon from '@mui/icons-material/Download';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import { AppBar, Toolbar, Typography, Select, MenuItem, Button, TextField, Box, IconButton } from '@mui/material';
+import { Save, Download, Refresh, Send } from '@mui/icons-material';
+import Editor from './Editor';
+import LivePreview from './LivePreview';
+import ChatSidebar from './ChatSidebar';
+import PropertyPanel from './PropertyPanel';
+import { useComponentStore } from '../stores/componentStore';
 
 export default function EditorLayout({ componentId }) {
   const { framework, setFramework } = useComponentStore();
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Top Header */}
-      <AppBar position="sticky" color="default" elevation={1} sx={{ zIndex: 1200 }}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+      {/* Top Bar */}
+      <AppBar className="bg-white shadow-sm border-b border-gray-200 backdrop-blur-md z-50" elevation={0}>
+        <Toolbar className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Typography variant="h6" className="font-bold text-gray-900 flex-1">
             AI Component Editor
           </Typography>
-          <Select
-            value={framework}
-            onChange={(e) => setFramework(e.target.value)}
-            size="small"
-          >
-            <MenuItem value="react">React + Tailwind</MenuItem>
-            <MenuItem value="html-css-js">HTML/CSS/JS</MenuItem>
-          </Select>
-          <Button startIcon={<SaveIcon />} sx={{ mx: 1 }}>Save</Button>
-          <Button startIcon={<DownloadIcon />} sx={{ mx: 1 }}>Download</Button>
-          <Button startIcon={<RefreshIcon />}>Regenerate</Button>
+          
+          {/* Framework Selector */}
+          <div className="flex items-center gap-4 mx-4">
+            <Select
+              value={framework}
+              onChange={(e) => setFramework(e.target.value)}
+              size="small"
+              className="min-w-[140px] border-gray-300 shadow-sm"
+            >
+              <MenuItem value="react">React + Tailwind</MenuItem>
+              <MenuItem value="html-css-js">HTML/CSS/JS</MenuItem>
+            </Select>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <Button startIcon={<Save />} className="btn-secondary text-sm" size="small">
+              Save
+            </Button>
+            <Button startIcon={<Download />} className="btn-primary text-sm" size="small">
+              Download
+            </Button>
+            <Button startIcon={<Refresh />} className="!text-gray-600 hover:!bg-gray-100" size="small">
+              Regenerate
+            </Button>
+          </div>
         </Toolbar>
       </AppBar>
 
-      {/* Main Content */}
-      <Box sx={{ flexGrow: 1, overflow: 'hidden', display: 'flex' }}>
-        {/* Editor (40%) */}
-        <Box sx={{ width: '40%', height: '100%', borderRight: 1, borderColor: 'divider' }}>
-          <Editor />
-        </Box>
+      {/* Main Layout: Editor | Preview | Chat */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Monaco Editor - 40% */}
+        <div className="w-[40%] border-r border-gray-200 bg-gray-50 flex flex-col">
+          <div className="p-3 border-b border-gray-200 bg-white">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Code className="text-primary-600" />
+              <span>Code Editor</span>
+            </div>
+          </div>
+          <div className="flex-1 monaco-container">
+            <Editor />
+          </div>
+        </div>
 
-        {/* Preview + Chat (60%) */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {/* Preview Row */}
-          <Box sx={{ flex: 1, display: 'flex' }}>
-            <Box sx={{ flex: 1, p: 2, borderRight: 1, borderColor: 'divider' }}>
+        {/* Preview + Chat - 60% */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-white">
+          {/* Live Preview */}
+          <div className="flex-1 border-r border-gray-200 flex flex-col">
+            <div className="p-3 border-b border-gray-200 bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <span className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                  <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                </span>
+                <span>Live Preview</span>
+              </div>
+            </div>
+            <div className="flex-1 p-4 preview-iframe">
               <LivePreview />
-            </Box>
-            {/* Chat Sidebar */}
-            <Box sx={{ width: 320, borderLeft: 1, borderColor: 'divider' }}>
-              <ChatSidebar />
-            </Box>
-          </Box>
-        </Box>
-      </Box>
+            </div>
+          </div>
+
+          {/* Chat Sidebar */}
+          <div className="w-full lg:w-80 border-l border-gray-200 flex flex-col bg-gray-50">
+            <ChatSidebar />
+          </div>
+        </div>
+      </div>
 
       {/* Bottom Property Panel */}
-      <Paper elevation={2} sx={{ p: 2 }}>
+      <div className="h-64 border-t border-gray-200 bg-white shadow-lg">
         <PropertyPanel />
-      </Paper>
-    </Box>
+      </div>
+    </div>
   );
 }
