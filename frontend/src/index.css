@@ -1,81 +1,37 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
-
-@layer base {
-  :root {
-    --primary-600: 59 130 246;
-  }
-  
-  html {
-    scroll-behavior: smooth;
-    scroll-padding-top: 4rem;
-  }
-  
-  body {
-    @apply bg-gray-50 text-gray-900 antialiased font-sans leading-relaxed;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer components {
-  /* Enhanced Button Styles */
+  /* ✅ USE TAILWIND DEFAULT COLORS - NO CUSTOM COLORS */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 border border-transparent rounded-xl shadow-sm hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-50 transition-all duration-200 transform hover:-translate-y-px active:scale-95 active:shadow-md;
+    @apply bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl font-semibold transition-all duration-200 hover:-translate-y-px;
   }
   
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200;
+    @apply bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 px-6 py-3 rounded-xl shadow-sm hover:shadow-md font-medium transition-all duration-200;
   }
   
-  /* Card Hover Effects */
   .card {
-    @apply bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 overflow-hidden group;
+    @apply bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300;
   }
   
-  .card:hover .card-image {
-    @apply scale-105;
+  .chat-bubble-user {
+    @apply bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] ml-auto shadow-lg;
   }
   
-  /* Form Inputs */
-  input, textarea, select {
-    @apply transition-all duration-200 ease-in-out;
+  .chat-bubble-ai {
+    @apply bg-gray-100 text-gray-900 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] shadow-sm;
   }
   
-  input:focus, textarea:focus, select:focus {
-    @apply ring-2 ring-primary-500 ring-offset-1 ring-offset-white shadow-sm border-primary-500;
-  }
-  
-  /* Smooth Animations */
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-  
-  .animate-slide-up {
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
+  .monaco-container {
+    @apply h-full border-r border-gray-200 bg-gray-50;
   }
 }
 
-/* Custom Scrollbars */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  @apply bg-gray-100 rounded-full;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { 
+    @apply bg-gray-50 text-gray-900 antialiased; 
+  }
 }
