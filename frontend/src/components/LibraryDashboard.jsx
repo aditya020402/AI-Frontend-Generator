@@ -42,7 +42,12 @@ export default function LibraryDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <AppBar className="bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm" elevation={0}>
+      <AppBar 
+          position="fixed" 
+          elevation={0}   
+          className="bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm z-[1000] top-0" 
+          sx={{ height: 70 }} 
+        >
         <Toolbar className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex-1 flex items-center space-x-4">
             <Code className="text-2xl text-primary-600" />
