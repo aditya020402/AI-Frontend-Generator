@@ -1,224 +1,240 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Slider, Box, Typography, Chip, Tabs, Tab,
-  FormControlLabel, Switch, Divider
+  Box,
+  Typography,
+  Slider,
+  TextField,
+  Button,
+  Chip,
+  Paper,
+  Divider,
+  IconButton,
+  InputAdornment
 } from '@mui/material';
-// ✅ THESE ICONS 100% EXIST IN @mui/icons-material
-import { Palette, Dashboard, FormatSize } from '@mui/icons-material';
-import { ChromePicker } from 'react-color';
 import { useComponentStore } from '../stores/componentStore';
+import { Palette, Typography as TypographyIcon, Spacing } from '@mui/icons-material';
 
 export default function PropertyPanel() {
-  const { cssProps, updateCSSProps } = useComponentStore();
-  const [activeTab, setActiveTab] = useState(0);
+  const { currentComponent, updateCode } = useComponentStore();
 
-  const updateProp = (key, value) => {
-    updateCSSProps({ ...cssProps, [key]: value });
+  // ✅ SAFE CSS PROPS - Prevents "primary-color" undefined error
+  const cssProps = currentComponent?.css_props || {};
+  const code = currentComponent?.current_code || '';
+
+  // Safe property access with fallbacks
+  const getProp = (key, defaultValue = '') => cssProps[key] || defaultValue;
+  const setProp = (key, value) => {
+    const newProps = { ...cssProps, [key]: value };
+    
+    // Update store
+    updateCode(code.replace(
+      /style\s*=\s*\{[^{}]*--[^:}*:[^}]*\}/,
+      `style={{ ${Object.entries(newProps)
+        .map(([k, v]) => `${k}: '${v}'`)
+        .join(', ')} }}`
+    ) || `style={{ ${Object.entries(newProps)
+      .map(([k, v]) => `${k}: '${v}'`)
+      .join(', ')} }}`);
   };
 
-  const tailwindColors = [
-    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', 
-    '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'
-  ];
+  const handleColorChange = (key) => (e) => {
+    setProp(key, e.target.value);
+  };
+
+  const handleSliderChange = (key, min = 0, max = 100) => (e, value) => {
+    setProp(key, `${value}px`);
+  };
+
+  const resetProps = () => {
+    setProp('--primary-color', '#3b82f6');
+    setProp('--bg-color', '#ffffff');
+    setProp('--text-color', '#1f2937');
+    setProp('--padding', '2rem');
+    setProp('--margin', '1rem');
+    setProp('--border-radius', '0.5rem');
+  };
+
+  if (!currentComponent) {
+    return (
+      <Paper className="h-full flex flex-col p-8 bg-gradient-to-br from-gray-50 to-white shadow-xl border border-gray-200">
+        <div className="flex flex-col items-center justify-center flex-1 text-center">
+          <Palette className="w-20 h-20 text-gray-400 mb-6" />
+          <Typography variant="h6" className="font-bold text-gray-700 mb-2">
+            Select a Component
+          </Typography>
+          <Typography variant="body2" className="text-gray-500">
+            Choose a component to edit its properties
+          </Typography>
+        </div>
+      </Paper>
+    );
+  }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-white">
-      {/* Tab Header */}
-      <div className="border-b border-gray-200 bg-white px-6 py-3 sticky top-0 z-10">
-        <Tabs 
-          value={activeTab} 
-          onChange={(e, newValue) => setActiveTab(newValue)}
-          variant="fullWidth"
-          className="!bg-gray-50 !rounded-xl"
-        >
-          <Tab 
-            icon={<Palette />} 
-            label="Colors"
-            className="!min-h-12 font-medium data-[highlighted=true]:!bg-blue-50 data-[selected=true]:!bg-blue-50 text-gray-700 data-[selected=true]:text-blue-600"
-          />
-          <Tab 
-            icon={<Dashboard />} 
-            label="Layout"
-            className="!min-h-12 font-medium data-[highlighted=true]:!bg-gray-50 data-[selected=true]:!bg-gray-50 text-gray-700 data-[selected=true]:text-gray-900"
-          />
-          <Tab 
-            icon={<FormatSize />} 
-            label="Typography"
-            className="!min-h-12 font-medium data-[highlighted=true]:!bg-gray-50 data-[selected=true]:!bg-gray-50 text-gray-700 data-[selected=true]:text-gray-900"
-          />
-        </Tabs>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin bg-gray-50">
-        
-        {/* COLORS TAB */}
-        {activeTab === 0 && (
-          <div className="space-y-6">
-            <Typography variant="h6" className="font-bold text-gray-900 flex items-center gap-2 text-xl">
-              🎨 Colors
-            </Typography>
-            
-            <div className="grid grid-cols-1 gap-6">
-              {['primary-color', 'bg-color', 'text-color'].map((prop) => (
-                <div key={prop} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                  <label className="text-sm font-semibold text-gray-900 capitalize block mb-2">
-                    {prop.replace('-color', '').replace(/-/g, ' ')}
-                  </label>
-                  
-                  <ChromePicker
-                    color={cssProps[prop] || '#3b82f6'}
-                    onChangeComplete={(color) => updateProp(prop, color.hex)}
-                  />
-                  
-                  <div className="flex flex-wrap gap-2">
-                    {tailwindColors.map((color, i) => (
-                      <Chip
-                        key={i}
-                        size="small"
-                        sx={{ 
-                          backgroundColor: color,
-                          height: 32,
-                          '&:hover': { transform: 'scale(1.05)' }
-                        }}
-                        onClick={() => updateProp(prop, color)}
-                      />
-                    ))}
-                  </div>
-                  
-                  <div className="text-xs text-gray-500 font-mono bg-gray-100 px-3 py-1 rounded-lg w-fit">
-                    {cssProps[prop] || '#3b82f6'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* LAYOUT TAB */}
-        {activeTab === 1 && (
-          <div className="space-y-8">
-            <Typography variant="h6" className="font-bold text-gray-900 flex items-center gap-2 text-xl">
-              📐 Layout & Spacing
-            </Typography>
-            
-            <div className="grid grid-cols-1 gap-6">
-              {[
-                { key: 'padding', label: 'Padding', icon: '📏' },
-                { key: 'margin', label: 'Margin', icon: '📐' },
-                { key: 'gap', label: 'Gap', icon: '🔗' }
-              ].map(({ key, label, icon }) => (
-                <div key={key} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-4">
-                    {icon} {label}
-                  </label>
-                  <Slider
-                    value={parseFloat(cssProps[key]?.replace('rem', '') || 1) * 20}
-                    onChange={(_, v) => updateProp(key, `${v / 20}rem`)}
-                    min={0}
-                    max={4}
-                    step={0.05}
-                    marks
-                    valueLabelDisplay="auto"
-                  />
-                  <div className="text-xs text-gray-500 mt-2 font-mono">
-                    {cssProps[key] || '1rem'}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <Typography variant="subtitle1" className="font-semibold mb-4 flex items-center gap-2 text-lg">
-                ✨ Effects
+    <Paper className="h-full flex flex-col overflow-hidden shadow-2xl border border-gray-200 bg-white">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Palette className="w-10 h-10 text-indigo-600" />
+            <div>
+              <Typography variant="subtitle1" className="font-bold text-gray-900">
+                Properties
               </Typography>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-3">Shadow</label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { label: 'None', value: 'shadow-none' },
-                      { label: 'Sm', value: 'shadow-sm' },
-                      { label: 'Md', value: 'shadow-md' },
-                      { label: 'Lg', value: 'shadow-lg' },
-                      { label: 'Xl', value: 'shadow-xl' }
-                    ].map(({ label, value }) => (
-                      <Chip
-                        key={value}
-                        label={label}
-                        variant={cssProps.shadow?.includes(value) ? 'filled' : 'outlined'}
-                        onClick={() => updateProp('shadow', value)}
-                        size="small"
-                        className="cursor-pointer hover:shadow-md"
-                      />
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-3">Border Radius</label>
-                  <Slider
-                    value={parseFloat(cssProps['border-radius']?.replace('rem', '') || 0.5) * 20}
-                    onChange={(_, v) => updateProp('border-radius', `${v / 20}rem`)}
-                    min={0}
-                    max={2}
-                    step={0.05}
-                    marks
-                    valueLabelDisplay="auto"
-                  />
-                </div>
-              </div>
+              <Chip 
+                label={currentComponent.framework?.toUpperCase() || 'REACT'} 
+                size="small" 
+                className="mt-1 bg-blue-100 text-blue-800" 
+              />
             </div>
           </div>
-        )}
-
-        {/* TYPOGRAPHY TAB */}
-        {activeTab === 2 && (
-          <div className="space-y-6">
-            <Typography variant="h6" className="font-bold text-gray-900 flex items-center gap-2 text-xl">
-              🔤 Typography
-            </Typography>
-            
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-              <div>
-                <label className="text-sm font-semibold text-gray-900 block mb-3">Font Size</label>
-                <Slider
-                  value={parseFloat(cssProps['font-size']?.replace('rem', '') || 1) * 20}
-                  onChange={(_, v) => updateProp('font-size', `${v / 20}rem`)}
-                  min={0.5}
-                  max={3}
-                  step={0.05}
-                  marks
-                  valueLabelDisplay="auto"
-                />
-                <div className="text-xs text-gray-500 mt-2 font-mono">
-                  {cssProps['font-size'] || '1rem'}
-                </div>
-              </div>
-              
-              <div className="flex gap-3 flex-wrap">
-                <Chip 
-                  label="Bold" 
-                  variant={cssProps['font-weight'] === 'bold' ? 'filled' : 'outlined'}
-                  color="primary"
-                  onClick={() => updateProp('font-weight', 'bold')}
-                />
-                <Chip 
-                  label="Normal" 
-                  variant={cssProps['font-weight'] === 'normal' ? 'filled' : 'outlined'}
-                  onClick={() => updateProp('font-weight', 'normal')}
-                />
-                <Chip 
-                  label="Light" 
-                  variant={cssProps['font-weight'] === 'light' ? 'filled' : 'outlined'}
-                  onClick={() => updateProp('font-weight', 'light')}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+          <IconButton onClick={resetProps} title="Reset to defaults">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </IconButton>
+        </div>
       </div>
-    </div>
+
+      {/* Properties */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
+        {/* Colors */}
+        <div>
+          <Typography variant="subtitle2" className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Palette className="w-5 h-5 text-blue-600" />
+            Colors
+          </Typography>
+          
+          <div className="space-y-4">
+            <TextField
+              fullWidth
+              label="Primary Color"
+              value={getProp('--primary-color', '#3b82f6')}
+              onChange={handleColorChange('--primary-color')}
+              type="color"
+              size="small"
+              className="mb-4"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <div className="w-8 h-8 rounded border-2 border-gray-200" 
+                         style={{ backgroundColor: getProp('--primary-color', '#3b82f6') }} />
+                  </InputAdornment>
+                )
+              }}
+              sx={{ '& .MuiInputBase-root': { height: 50 } }}
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <TextField
+                label="Background"
+                value={getProp('--bg-color', '#ffffff')}
+                onChange={handleColorChange('--bg-color')}
+                type="color"
+                size="small"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <div className="w-6 h-6 rounded" 
+                           style={{ backgroundColor: getProp('--bg-color', '#ffffff') }} />
+                    </InputAdornment>
+                  )
+                }}
+              />
+              <TextField
+                label="Text Color"
+                value={getProp('--text-color', '#1f2937')}
+                onChange={handleColorChange('--text-color')}
+                type="color"
+                size="small"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <div className="w-6 h-6 rounded" 
+                           style={{ backgroundColor: getProp('--text-color', '#1f2937') }} />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <Divider />
+
+        {/* Spacing */}
+        <div>
+          <Typography variant="subtitle2" className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Spacing className="w-5 h-5 text-green-600" />
+            Spacing
+          </Typography>
+          
+          <div className="space-y-4">
+            <div>
+              <Typography variant="caption" className="block text-gray-500 mb-2">Padding</Typography>
+              <Slider
+                value={parseInt(getProp('--padding', '32').replace('px', '') || 32)}
+                onChange={handleSliderChange('--padding', 0, 100)}
+                min={0}
+                max={100}
+                valueLabelDisplay="auto"
+                className="mt-2"
+              />
+            </div>
+            
+            <div>
+              <Typography variant="caption" className="block text-gray-500 mb-2">Margin</Typography>
+              <Slider
+                value={parseInt(getProp('--margin', '16').replace('px', '') || 16)}
+                onChange={handleSliderChange('--margin', 0, 50)}
+                min={0}
+                max={50}
+                valueLabelDisplay="auto"
+                className="mt-2"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Divider />
+
+        {/* Typography */}
+        <div>
+          <Typography variant="subtitle2" className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <TypographyIcon className="w-5 h-5 text-purple-600" />
+            Typography
+          </Typography>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <TextField
+              label="Font Size"
+              value={getProp('--font-size', '16px')}
+              onChange={(e) => setProp('--font-size', e.target.value)}
+              size="small"
+              className="w-full"
+            />
+            <TextField
+              label="Line Height"
+              value={getProp('--line-height', '1.5')}
+              onChange={(e) => setProp('--line-height', e.target.value)}
+              size="small"
+              className="w-full"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50/50">
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={resetProps}
+          className="rounded-xl shadow-lg font-semibold py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        >
+          Reset All Properties
+        </Button>
+      </div>
+    </Paper>
   );
 }
