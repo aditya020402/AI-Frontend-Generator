@@ -1,144 +1,166 @@
-import React, { useEffect, useRef, useCallback } from 'react';
-import { Box, Typography, Skeleton, Paper } from '@mui/material';
-import { PlayCircle, Refresh } from '@mui/icons-material';
-import { useComponentStore } from '../stores/componentStore.js';
+import React, { useEffect, useRef } from 'react';
+import { Box, Typography, CircularProgress, Alert } from '@mui/material';
+import { useComponentStore } from '../stores/componentStore';
+import { createRoot } from 'react-dom/client';
 
 export default function LivePreview() {
-  const iframeRef = useRef();
-  const { code, cssProps, updateCode, framework } = useComponentStore();
-  const [previewReady, setPreviewReady] = useState(false);
+  const previewRef = useRef(null);
+  const iframeRef = useRef(null);
+  const { currentComponent, framework } = useComponentStore();
 
-  const injectCSS = useCallback((iframeDoc) => {
-    if (!iframeDoc) return;
-
-    // Dynamic CSS variables injection
-    const cssVars = Object.entries(cssProps)
-      .filter(([_, v]) => v)
-      .map(([k, v]) => `--${k}: ${v}`)
-      .join(';');
-
-    // Create/update CSS injection
-    let style = iframeDoc.querySelector('style[data-tailwind-live]');
-    if (!style) {
-      style = iframeDoc.createElement('style');
-      style.dataset.tailwindLive = 'true';
-      iframeDoc.head.appendChild(style);
-    }
-    style.textContent = `:root { ${cssVars}; }`;
-
-    // Tailwind config for custom colors
-    let configScript = iframeDoc.querySelector('script[data-tailwind-config]');
-    if (!configScript) {
-      configScript = iframeDoc.createElement('script');
-      configScript.dataset.tailwindConfig = 'true';
-      iframeDoc.head.appendChild(configScript);
-    }
-    configScript.textContent = `
-      tailwind.config = {
-        theme: { extend: { colors: { primary: 'var(--primary-color, #3b82f6)' } } }
-      }
-    `;
-  }, [cssProps]);
+  // ✅ SAFE CODE CHECK - Prevents "includes" error
+  const code = currentComponent?.current_code || '';
+  const isReact = framework === 'react' || (code && code.includes('React') || code.includes('jsx') || code.includes('className'));
+  const isEmpty = !code || code.trim() === '' || code.includes('// Generating...');
 
   useEffect(() => {
-    if (iframeRef.current?.contentDocument && iframeRef.current.contentWindow) {
-      const iframeDoc = iframeRef.current.contentDocument;
-      injectCSS(iframeDoc);
-      setPreviewReady(true);
+    const preview = previewRef.current;
+    if (!preview) return;
 
-      // Mutation observer for live sync
-      const observer = new MutationObserver(() => {
-        try {
-          updateCode(iframeDoc.documentElement.outerHTML);
-        } catch (e) {}
-      });
+    // Clear previous content
+    preview.innerHTML = '';
 
-      observer.observe(iframeDoc.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style']
-      });
-
-      return () => observer.disconnect();
+    if (isEmpty) {
+      // Show loading/empty state
+      preview.innerHTML = `
+        <div class="min-h-[400px] flex flex-col items-center justify-center p-12 text-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
+          <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-xl">
+            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-2">No Preview Available</h3>
+          <p class="text-gray-600 mb-8 max-w-sm">${currentComponent ? 'Edit code on the left to see live preview' : 'Select or create a component'}</p>
+          ${!currentComponent && '<button class="px-6 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 shadow-lg transition-all">Create New Component</button>'}
+        </div>
+      `;
+      return;
     }
-  }, [code, cssProps, injectCSS, updateCode]);
 
-  const getSrcDoc = () => {
-    const baseTemplate = `
-      <!DOCTYPE html>
-      <html class="h-full">
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Live Preview - ${framework}</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <style>body { font-family: 'Inter', sans-serif; }</style>
-      </head>
-      <body class="min-h-screen bg-gray-50 p-8 antialiased">
-        <div id="root" class="max-w-4xl mx-auto rounded-2xl shadow-xl bg-white border border-gray-200 p-8"></div>
-        <script>
-          ${framework === 'react' ? `
-            const { useState, useEffect } = React;
-            ${code}
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(React.createElement(MyComponent));
-          ` : code}
-        </script>
-      </body>
-      </html>`;
-
-    return baseTemplate;
-  };
+    if (isReact) {
+      // ✅ REACT PREVIEW - iframe sandbox
+      const iframe = iframeRef.current;
+      if (iframe) {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        iframeDoc.open();
+        iframeDoc.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+              <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+              <script src="https://cdn.tailwindcss.com"></script>
+              <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                html, body { height: 100%; overflow: hidden; }
+                body { background: #f8fafc; padding: 2rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+                #root { min-height: 400px; max-width: 600px; margin: 0 auto; }
+              </style>
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="text/babel">
+                ${code}
+              </script>
+            </body>
+          </html>
+        `);
+        iframeDoc.close();
+      }
+    } else {
+      // ✅ HTML/CSS/JS PREVIEW - Direct DOM
+      preview.innerHTML = code;
+      
+      // Extract and run inline scripts safely
+      const scripts = preview.getElementsByTagName('script');
+      for (let script of scripts) {
+        const newScript = document.createElement('script');
+        if (script.src) {
+          newScript.src = script.src;
+        } else {
+          newScript.textContent = script.textContent;
+        }
+        script.parentNode.replaceChild(newScript, script);
+      }
+    }
+  }, [code, isReact, isEmpty, currentComponent]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-gray-50 to-white">
-      {/* Preview Header */}
-      <div className="p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
+    <Box className="flex flex-col h-full bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
-            <Typography variant="subtitle2" className="font-semibold text-gray-900 flex items-center gap-2">
-              Live Preview <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">Ready</span>
-            </Typography>
+            <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <Typography variant="subtitle1" className="font-bold text-gray-900">
+                Live Preview
+              </Typography>
+              <Typography variant="caption" className="text-gray-500 block">
+                {framework === 'react' ? 'React + Tailwind' : 'HTML/CSS/JS'}
+              </Typography>
+            </div>
           </div>
-          <IconButton size="small" className="text-gray-500 hover:bg-gray-100">
-            <Refresh className="w-4 h-4" />
-          </IconButton>
+          
+          <Chip 
+            label={isReact ? 'React' : 'HTML'} 
+            size="small" 
+            className="bg-blue-100 text-blue-800 font-medium shadow-sm"
+          />
         </div>
       </div>
 
-      {/* Preview Container */}
-      <div className="flex-1 relative overflow-hidden">
-        {previewReady ? (
+      {/* Preview Area */}
+      <div className="flex-1 overflow-hidden relative">
+        {isEmpty ? (
+          <div ref={previewRef} className="h-full" />
+        ) : isReact ? (
           <iframe
             ref={iframeRef}
-            srcDoc={getSrcDoc()}
-            sandbox="allow-scripts allow-same-origin"
-            className="w-full h-full border-none shadow-inner"
-            title="Live Tailwind Preview"
+            className="w-full h-full border-0 bg-transparent"
+            sandbox="allow-scripts"
+            title="Live Preview"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-12 bg-gray-50">
-            <div className="w-24 h-24 bg-white rounded-2xl shadow-lg flex items-center justify-center mb-6 border-2 border-dashed border-gray-300">
-              <PlayCircle className="w-12 h-12 text-gray-400" />
+          <div 
+            ref={previewRef}
+            className="w-full h-full p-6 overflow-auto bg-white/50 backdrop-blur-sm"
+            style={{ minHeight: '400px' }}
+          />
+        )}
+        
+        {/* Loading Overlay */}
+        {!code && (
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-20">
+            <div className="text-center p-8">
+              <CircularProgress size={48} className="text-blue-600 mb-4" />
+              <Typography variant="h6" className="font-semibold text-gray-700 mb-2">
+                Loading Preview...
+              </Typography>
+              <Typography variant="body2" className="text-gray-500">
+                Generating live preview
+              </Typography>
             </div>
-            <Typography variant="h6" className="text-gray-900 mb-2 font-semibold">
-              Preview Loading...
-            </Typography>
-            <Typography variant="body2" className="text-gray-500 mb-8 text-center">
-              Your Tailwind component will appear here instantly
-            </Typography>
-            <Skeleton variant="rectangular" width="100%" height={400} className="rounded-xl" />
           </div>
         )}
       </div>
 
-      {/* Device Frame Overlay (Optional) */}
-      <div className="absolute inset-4 bg-transparent border-4 border-gray-200 rounded-3xl shadow-2xl pointer-events-none opacity-30 hover:opacity-100 transition-opacity duration-300">
-        <div className="absolute inset-2 bg-white/50 rounded-2xl"></div>
+      {/* Footer Controls */}
+      <div className="p-3 bg-gradient-to-r from-gray-50 to-white border-t border-gray-200">
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>Auto-updates with code changes</span>
+          <div className="flex items-center gap-2">
+            {currentComponent?.id && (
+              <Chip label={`ID: ${currentComponent.id.slice(-8)}`} size="small" className="bg-gray-100" />
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </Box>
   );
 }
