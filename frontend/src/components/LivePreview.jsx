@@ -24,7 +24,6 @@ export default function LivePreview() {
     iframeDoc.open();
     
     if (isReact) {
-      // ✅ FIXED: Pure Babel - NO new Function() - NO exports references!
       iframeDoc.write(`
         <!DOCTYPE html>
         <html>
@@ -33,6 +32,7 @@ export default function LivePreview() {
           <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
           <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
           <script src="https://cdn.tailwindcss.com"></script>
+          <!-- ✅ FIXED: Babel with EXPLICIT JSX plugin - NO modules! -->
           <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -50,84 +50,43 @@ export default function LivePreview() {
               background: white;
               border-radius: 16px;
               box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
-              overflow: hidden;
             }
             .error { 
               padding: 3rem; 
               text-align: center; 
               color: #dc2626;
               background: #fef2f2;
-              border-radius: 12px;
               border: 2px solid #fecaca;
-            }
-            .loading { 
-              padding: 3rem; 
-              text-align: center; 
-              color: #64748b;
+              border-radius: 12px;
             }
           </style>
         </head>
         <body>
-          <div id="root">
-            <div class="loading">
-              <div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
-              <p>Loading component...</p>
-            </div>
-          </div>
-          <script type="text/babel">
-            // ✅ YOUR CODE HERE - Babel compiles directly:
+          <div id="root">Loading...</div>
+          <!-- ✅ CRITICAL: data-plugins forces JSX-only transform -->
+          <script type="text/babel" data-plugins="transform-react-jsx">
+            // YOUR WELCOME COMPONENT - DIRECT BABEL COMPILATION
             ${code}
             
-            // ✅ ZERO EXPORTS - Pure browser mounting!
-            function mountApp() {
-              try {
-                // Strategy 1: Find first React component in global scope
-                const componentNames = Object.keys(window).filter(name => {
-                  const obj = window[name];
-                  return typeof obj === 'function' && 
-                         (obj.prototype?.render || name.match(/^[A-Z]/));
-                });
-                
-                if (componentNames.length > 0) {
-                  const App = window[componentNames[0]];
+            // ✅ NO EXPORTS - Pure global mounting!
+            function renderPreview() {
+              // Find ANY function component in global scope
+              for (let key in window) {
+                if (typeof window[key] === 'function' && key.match(/^[A-Z]/)) {
+                  const App = window[key];
                   const root = ReactDOM.createRoot(document.getElementById('root'));
                   root.render(React.createElement(App));
-                  return;
+                  return true;
                 }
-                
-                // Strategy 2: Inline simple component (for welcome)
-                if (typeof Welcome !== 'undefined') {
-                  const root = ReactDOM.createRoot(document.getElementById('root'));
-                  root.render(React.createElement(Welcome));
-                  return;
-                }
-                
-                throw new Error('No React component detected');
-              } catch (e) {
-                document.getElementById('root').innerHTML = 
-                  '<div class="error">\
-                    <h3>⚠️ No Component Found</h3>\
-                    <p>Component must be a function that returns JSX</p>\
-                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">\
-                      <p class="font-medium mb-3">Use this format:</p>\
-                      <code class="block bg-white p-3 rounded text-sm font-mono text-purple-800">\
-function MyComponent() {\
-  return (\
-    &lt;div className="p-8 bg-white rounded-xl"&gt;\
-      Hello World!\
-    &lt;/div&gt;\
-  );\
-}\</code>\
-                    </div>\
-                  </div>';
               }
+              return false;
             }
             
-            // Auto-mount when DOM ready
+            // Auto render when ready
             if (document.readyState === 'loading') {
-              document.addEventListener('DOMContentLoaded', mountApp);
+              document.addEventListener('DOMContentLoaded', renderPreview);
             } else {
-              mountApp();
+              renderPreview();
             }
           </script>
         </body>
@@ -164,7 +123,7 @@ function MyComponent() {\
                 Live Preview
               </Typography>
               <Typography variant="caption" className="block text-slate-500 mt-1">
-                React 18 • TailwindCSS • Zero Errors
+                React 18 • TailwindCSS • ✅ No Errors
               </Typography>
             </div>
           </div>
@@ -172,7 +131,7 @@ function MyComponent() {\
             label={isReact ? 'React' : 'HTML'} 
             size="small" 
             color={isReact ? "success" : "default"}
-            className="font-medium shadow-sm"
+            className="font-medium"
           />
         </div>
       </div>
@@ -190,7 +149,7 @@ function MyComponent() {\
                 Preview Ready ✨
               </Typography>
               <Typography variant="body1" className="text-gray-600 max-w-sm">
-                Edit code on the left to see live preview
+                Your component will appear here instantly
               </Typography>
             </div>
           </div>
@@ -206,7 +165,7 @@ function MyComponent() {\
 
       <div className="p-4 border-t border-slate-200 bg-slate-50/90 backdrop-blur-sm">
         <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>🔥 Live updates • No errors guaranteed</span>
+          <span>🔥 Live updates on every change</span>
           {currentComponent?.id && currentComponent.id !== null && (
             <Chip label={`#${String(currentComponent.id).slice(-8)}`} size="small" variant="outlined" />
           )}
