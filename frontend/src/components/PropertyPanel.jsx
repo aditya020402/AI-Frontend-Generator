@@ -3,8 +3,8 @@ import {
   Slider, Box, Typography, Chip, Tabs, Tab,
   FormControlLabel, Switch, Divider
 } from '@mui/material';
-// ✅ FIXED ICONS - These ALL EXIST
-import { Palette, GridView, Typography as TypographyIcon } from '@mui/icons-material';
+// ✅ THESE ICONS 100% EXIST IN @mui/icons-material
+import { Palette, Dashboard, FormatSize } from '@mui/icons-material';
 import { ChromePicker } from 'react-color';
 import { useComponentStore } from '../stores/componentStore';
 
@@ -29,63 +29,64 @@ export default function PropertyPanel() {
           value={activeTab} 
           onChange={(e, newValue) => setActiveTab(newValue)}
           variant="fullWidth"
-          className="bg-gray-50 rounded-xl"
+          className="!bg-gray-50 !rounded-xl"
         >
           <Tab 
             icon={<Palette />} 
             label="Colors"
-            className="min-h-12 font-medium data-[highlighted=true]:bg-blue-50 data-[selected=true]:bg-blue-50 text-gray-700 data-[selected=true]:text-blue-600"
+            className="!min-h-12 font-medium data-[highlighted=true]:!bg-blue-50 data-[selected=true]:!bg-blue-50 text-gray-700 data-[selected=true]:text-blue-600"
           />
           <Tab 
-            icon={<GridView />} 
+            icon={<Dashboard />} 
             label="Layout"
-            className="min-h-12 font-medium data-[highlighted=true]:bg-gray-50 data-[selected=true]:bg-gray-50 text-gray-700 data-[selected=true]:text-gray-900"
+            className="!min-h-12 font-medium data-[highlighted=true]:!bg-gray-50 data-[selected=true]:!bg-gray-50 text-gray-700 data-[selected=true]:text-gray-900"
           />
           <Tab 
-            icon={<TypographyIcon />} 
+            icon={<FormatSize />} 
             label="Typography"
-            className="min-h-12 font-medium data-[highlighted=true]:bg-gray-50 data-[selected=true]:bg-gray-50 text-gray-700 data-[selected=true]:text-gray-900"
+            className="!min-h-12 font-medium data-[highlighted=true]:!bg-gray-50 data-[selected=true]:!bg-gray-50 text-gray-700 data-[selected=true]:text-gray-900"
           />
         </Tabs>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin bg-gray-50">
         
         {/* COLORS TAB */}
         {activeTab === 0 && (
           <div className="space-y-6">
-            <Typography variant="h6" className="font-bold text-gray-900 flex items-center gap-2">
+            <Typography variant="h6" className="font-bold text-gray-900 flex items-center gap-2 text-xl">
               🎨 Colors
             </Typography>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               {['primary-color', 'bg-color', 'text-color'].map((prop) => (
-                <div key={prop} className="space-y-3">
-                  <label className="text-sm font-semibold text-gray-900 capitalize block mb-3">
+                <div key={prop} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                  <label className="text-sm font-semibold text-gray-900 capitalize block mb-2">
                     {prop.replace('-color', '').replace(/-/g, ' ')}
                   </label>
                   
-                  {/* Color Picker */}
                   <ChromePicker
                     color={cssProps[prop] || '#3b82f6'}
                     onChangeComplete={(color) => updateProp(prop, color.hex)}
-                    className="shadow-lg rounded-xl overflow-hidden"
                   />
                   
-                  {/* Quick Colors */}
-                  <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-xl">
+                  <div className="flex flex-wrap gap-2">
                     {tailwindColors.map((color, i) => (
-                      <button
+                      <Chip
                         key={i}
-                        style={{ backgroundColor: color }}
-                        className="w-10 h-10 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-white"
+                        size="small"
+                        sx={{ 
+                          backgroundColor: color,
+                          height: 32,
+                          '&:hover': { transform: 'scale(1.05)' }
+                        }}
                         onClick={() => updateProp(prop, color)}
                       />
                     ))}
                   </div>
                   
-                  <div className="text-xs text-gray-500 font-mono bg-gray-100 px-3 py-1 rounded-lg">
+                  <div className="text-xs text-gray-500 font-mono bg-gray-100 px-3 py-1 rounded-lg w-fit">
                     {cssProps[prop] || '#3b82f6'}
                   </div>
                 </div>
@@ -97,18 +98,18 @@ export default function PropertyPanel() {
         {/* LAYOUT TAB */}
         {activeTab === 1 && (
           <div className="space-y-8">
-            <Typography variant="h6" className="font-bold text-gray-900 flex items-center gap-2">
+            <Typography variant="h6" className="font-bold text-gray-900 flex items-center gap-2 text-xl">
               📐 Layout & Spacing
             </Typography>
             
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6">
               {[
                 { key: 'padding', label: 'Padding', icon: '📏' },
                 { key: 'margin', label: 'Margin', icon: '📐' },
                 { key: 'gap', label: 'Gap', icon: '🔗' }
               ].map(({ key, label, icon }) => (
-                <div key={key}>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
+                <div key={key} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-4">
                     {icon} {label}
                   </label>
                   <Slider
@@ -119,28 +120,25 @@ export default function PropertyPanel() {
                     step={0.05}
                     marks
                     valueLabelDisplay="auto"
-                    className="w-full"
                   />
-                  <div className="text-xs text-gray-500 mt-1 font-mono">
+                  <div className="text-xs text-gray-500 mt-2 font-mono">
                     {cssProps[key] || '1rem'}
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Shadows & Effects */}
-            <Divider className="my-6" />
-            <div>
-              <Typography variant="subtitle1" className="font-semibold mb-4 flex items-center gap-2">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <Typography variant="subtitle1" className="font-semibold mb-4 flex items-center gap-2 text-lg">
                 ✨ Effects
               </Typography>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-2">Shadow</label>
-                  <div className="flex gap-2 flex-wrap">
+                  <label className="text-sm font-medium text-gray-700 block mb-3">Shadow</label>
+                  <div className="flex flex-wrap gap-2">
                     {[
-                      { label: 'None', value: 'none' },
+                      { label: 'None', value: 'shadow-none' },
                       { label: 'Sm', value: 'shadow-sm' },
                       { label: 'Md', value: 'shadow-md' },
                       { label: 'Lg', value: 'shadow-lg' },
@@ -152,14 +150,14 @@ export default function PropertyPanel() {
                         variant={cssProps.shadow?.includes(value) ? 'filled' : 'outlined'}
                         onClick={() => updateProp('shadow', value)}
                         size="small"
-                        className="cursor-pointer hover:shadow-md transition-all"
+                        className="cursor-pointer hover:shadow-md"
                       />
                     ))}
                   </div>
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-2">Radius</label>
+                  <label className="text-sm font-medium text-gray-700 block mb-3">Border Radius</label>
                   <Slider
                     value={parseFloat(cssProps['border-radius']?.replace('rem', '') || 0.5) * 20}
                     onChange={(_, v) => updateProp('border-radius', `${v / 20}rem`)}
@@ -178,13 +176,13 @@ export default function PropertyPanel() {
         {/* TYPOGRAPHY TAB */}
         {activeTab === 2 && (
           <div className="space-y-6">
-            <Typography variant="h6" className="font-bold text-gray-900 flex items-center gap-2">
+            <Typography variant="h6" className="font-bold text-gray-900 flex items-center gap-2 text-xl">
               🔤 Typography
             </Typography>
             
-            <div className="space-y-4">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
               <div>
-                <label className="text-sm font-semibold text-gray-900 block mb-2">Font Size</label>
+                <label className="text-sm font-semibold text-gray-900 block mb-3">Font Size</label>
                 <Slider
                   value={parseFloat(cssProps['font-size']?.replace('rem', '') || 1) * 20}
                   onChange={(_, v) => updateProp('font-size', `${v / 20}rem`)}
@@ -194,19 +192,27 @@ export default function PropertyPanel() {
                   marks
                   valueLabelDisplay="auto"
                 />
+                <div className="text-xs text-gray-500 mt-2 font-mono">
+                  {cssProps['font-size'] || '1rem'}
+                </div>
               </div>
               
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <Chip 
                   label="Bold" 
                   variant={cssProps['font-weight'] === 'bold' ? 'filled' : 'outlined'}
-                  onClick={() => updateProp('font-weight', 'bold')}
                   color="primary"
+                  onClick={() => updateProp('font-weight', 'bold')}
                 />
                 <Chip 
                   label="Normal" 
                   variant={cssProps['font-weight'] === 'normal' ? 'filled' : 'outlined'}
                   onClick={() => updateProp('font-weight', 'normal')}
+                />
+                <Chip 
+                  label="Light" 
+                  variant={cssProps['font-weight'] === 'light' ? 'filled' : 'outlined'}
+                  onClick={() => updateProp('font-weight', 'light')}
                 />
               </div>
             </div>
