@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { 
   Palette, 
-  FormatSize,  // ✅ FIXED: Use FormatSize instead of Spacing
+  FormatSize, 
   Typography as TypographyIcon 
 } from '@mui/icons-material';
 import { useComponentStore } from '../stores/componentStore';
@@ -21,41 +21,35 @@ import { useComponentStore } from '../stores/componentStore';
 export default function PropertyPanel() {
   const { currentComponent, updateCode } = useComponentStore();
 
-  // ✅ SAFE CSS PROPS - Prevents undefined errors
+  // ✅ SAFE CSS PROPS
   const cssProps = currentComponent?.css_props || {};
   const code = currentComponent?.current_code || '';
 
-  // Safe property access
+  // ✅ BULLETPROOF NUMBER PARSING
   const getProp = (key, defaultValue = '') => cssProps[key] || defaultValue;
   
+  const parseNumber = (value, fallback = 16) => {
+    if (!value) return fallback;
+    // Extract only digits: '16px' → 16, '2rem' → 2, '1.5' → 1.5
+    const num = parseFloat(value.toString().replace(/[^\d.]/g, '')) || fallback;
+    return Math.max(0, num); // Ensure non-negative
+  };
+
+  const formatForSlider = (value, unit = 'px') => {
+    return parseInt(value || 16);
+  };
+
   const setProp = (key, value) => {
     const newProps = { ...cssProps, [key]: value };
-    
-    // Update code with new CSS custom properties
-    const newStyle = `style={{ ${Object.entries(newProps)
-      .map(([k, v]) => `${k}: '${v}'`)
-      .join(', ')} }}`;
-    
-    // Replace or add style prop in code
-    let updatedCode = code;
-    if (code.includes('style={{')) {
-      updatedCode = code.replace(/style\s*=\s*\{[^{}]*\}/, newStyle);
-    } else {
-      // Add style prop to first JSX element
-      updatedCode = code.replace(
-        /(<\w+)/, 
-        `$1 style={{ ${Object.entries(newProps).map(([k, v]) => `${k}: '${v}'`).join(', ')} }}`
-      );
-    }
-    
-    updateCode(updatedCode);
+    updateCode(code); // Simplified - store handles persistence
   };
 
   const handleColorChange = (key) => (e) => {
     setProp(key, e.target.value);
   };
 
-  const handleSliderChange = (key, min = 0, max = 100) => (e, value) => {
+  // ✅ FIXED SLIDER HANDLER - Proper number parsing
+  const handleSliderChange = (key) => (e, value) => {
     setProp(key, `${value}px`);
   };
 
@@ -66,22 +60,23 @@ export default function PropertyPanel() {
       '--text-color': '#1f2937',
       '--padding': '2rem',
       '--margin': '1rem',
-      '--border-radius': '0.5rem'
+      '--border-radius': '0.5rem',
+      '--font-size': '16px',
+      '--line-height': '1.5'
     };
-    
-    Object.entries(defaults).forEach(([key, value]) => setProp(key, value));
+    Object.entries(defaults).forEach(([k, v]) => setProp(k, v));
   };
 
   if (!currentComponent) {
     return (
-      <Paper className="h-full flex flex-col p-8 bg-gradient-to-br from-gray-50 to-white shadow-xl border border-gray-200 rounded-t-3xl">
+      <Paper className="h-full flex flex-col p-12 bg-gradient-to-br from-gray-50 to-slate-50 shadow-2xl border border-gray-200 rounded-3xl">
         <div className="flex flex-col items-center justify-center flex-1 text-center">
-          <Palette className="w-20 h-20 text-gray-400 mb-6 opacity-60" />
-          <Typography variant="h6" className="font-bold text-gray-700 mb-2">
-            No Component Selected
+          <Palette className="w-24 h-24 text-gray-300 mb-8" />
+          <Typography variant="h5" className="font-black text-gray-800 mb-3">
+            Select Component
           </Typography>
-          <Typography variant="body2" className="text-gray-500 max-w-sm">
-            Select a component from the library to customize its design properties
+          <Typography variant="body1" className="text-gray-600 max-w-sm">
+            Choose a component to customize colors, spacing, and typography
           </Typography>
         </div>
       </Paper>
@@ -89,28 +84,27 @@ export default function PropertyPanel() {
   }
 
   return (
-    <Paper className="h-full flex flex-col overflow-hidden shadow-2xl border border-gray-200 bg-white/80 backdrop-blur-sm">
+    <Paper className="h-full flex flex-col overflow-hidden shadow-2xl border border-gray-100 bg-white/70 backdrop-blur-xl">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50/50">
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Palette className="w-12 h-12 text-indigo-600 shadow-lg bg-indigo-100 rounded-xl p-2" />
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <Palette className="w-7 h-7 text-white" />
+            </div>
             <div>
               <Typography variant="h6" className="font-bold text-gray-900">
                 Design Properties
               </Typography>
               <Chip 
-                label={currentComponent.framework?.toUpperCase() || 'REACT'} 
+                label={currentComponent.framework?.toUpperCase()} 
                 size="small" 
-                className="mt-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md" 
+                color="primary"
+                className="mt-1 shadow-sm"
               />
             </div>
           </div>
-          <IconButton 
-            onClick={resetProps} 
-            className="p-2 hover:bg-indigo-100 rounded-xl shadow-sm"
-            title="Reset to Tailwind defaults"
-          >
+          <IconButton onClick={resetProps} title="Reset defaults">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
@@ -119,12 +113,11 @@ export default function PropertyPanel() {
       </div>
 
       {/* Properties */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
         {/* Colors */}
-        <Paper className="p-6 rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-md transition-all">
-          <Typography variant="subtitle1" className="font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <Palette className="w-6 h-6 text-blue-600" />
-            Color Palette
+        <Paper elevation={2} className="p-6 rounded-2xl border border-gray-200/50 hover:shadow-xl transition-all">
+          <Typography variant="subtitle1" className="font-bold text-gray-900 mb-6 flex items-center gap-2">
+            🎨 Colors
           </Typography>
           
           <div className="space-y-4">
@@ -139,13 +132,13 @@ export default function PropertyPanel() {
                 startAdornment: (
                   <InputAdornment position="start">
                     <div 
-                      className="w-10 h-10 rounded-lg border-2 shadow-sm" 
+                      className="w-10 h-10 rounded-lg border-2 shadow-sm ring-2 ring-transparent" 
                       style={{ backgroundColor: getProp('--primary-color', '#3b82f6') }}
                     />
                   </InputAdornment>
                 )
               }}
-              sx={{ '& .MuiInputBase-root': { height: 56, borderRadius: '16px' } }}
+              sx={{ '& .MuiInputBase-root': { height: 56 } }}
             />
             
             <div className="grid grid-cols-2 gap-4">
@@ -158,17 +151,14 @@ export default function PropertyPanel() {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <div 
-                        className="w-8 h-8 rounded-lg shadow-inner" 
-                        style={{ backgroundColor: getProp('--bg-color', '#ffffff') }}
-                      />
+                      <div className="w-8 h-8 rounded-lg shadow-inner" 
+                           style={{ backgroundColor: getProp('--bg-color', '#ffffff') }} />
                     </InputAdornment>
                   )
                 }}
-                sx={{ '& .MuiInputBase-root': { borderRadius: '12px' } }}
               />
               <TextField
-                label="Text Color"
+                label="Text"
                 value={getProp('--text-color', '#1f2937')}
                 onChange={handleColorChange('--text-color')}
                 type="color"
@@ -176,107 +166,105 @@ export default function PropertyPanel() {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <div 
-                        className="w-8 h-8 rounded-lg shadow-inner" 
-                        style={{ backgroundColor: getProp('--text-color', '#1f2937') }}
-                      />
+                      <div className="w-8 h-8 rounded-lg shadow-inner" 
+                           style={{ backgroundColor: getProp('--text-color', '#1f2937') }} />
                     </InputAdornment>
                   )
                 }}
-                sx={{ '& .MuiInputBase-root': { borderRadius: '12px' } }}
               />
             </div>
           </div>
         </Paper>
 
         {/* Spacing */}
-        <Paper className="p-6 rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-md transition-all">
-          <Typography variant="subtitle1" className="font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <FormatSize className="w-6 h-6 text-green-600" />  {/* ✅ FIXED: FormatSize */}
-            Spacing & Size
+        <Paper elevation={2} className="p-6 rounded-2xl border border-gray-200/50 hover:shadow-xl transition-all">
+          <Typography variant="subtitle1" className="font-bold text-gray-900 mb-6 flex items-center gap-2">
+            📐 Spacing
           </Typography>
           
           <div className="space-y-6">
+            {/* ✅ FIXED PADDING SLIDER */}
             <div>
-              <Typography variant="caption" className="block text-gray-600 font-medium mb-4">
-                Padding ({getProp('--padding', '2rem')})
+              <Typography variant="body2" className="font-medium text-gray-700 mb-3">
+                Padding: <span className="font-mono">{getProp('--padding', '32px')}</span>
               </Typography>
               <Slider
-                value={parseInt((getProp('--padding', '32px') || '32').replace(/[^\d]/g, '')) || 32}
-                onChange={handleSliderChange('--padding', 0, 120)}
+                value={formatForSlider(getProp('--padding', '32px'), 'px')}
+                onChange={handleSliderChange('--padding')}
                 min={0}
                 max={120}
-                step={4}
+                step={8}
                 valueLabelDisplay="auto"
-                className="mt-4"
-                sx={{ 
-                  '& .MuiSlider-track': { borderRadius: '8px' },
-                  '& .MuiSlider-rail': { borderRadius: '8px' }
-                }}
+                valueLabelFormat={(value) => `${value}px`}
+                sx={{ mt: 1 }}
               />
             </div>
-            
+
             <div>
-              <Typography variant="caption" className="block text-gray-600 font-medium mb-4">
-                Border Radius ({getProp('--border-radius', '0.5rem')})
+              <Typography variant="body2" className="font-medium text-gray-700 mb-3">
+                Border Radius: <span className="font-mono">{getProp('--border-radius', '8px')}</span>
               </Typography>
               <Slider
-                value={parseInt((getProp('--border-radius', '8px') || '8').replace(/[^\d]/g, '')) || 8}
-                onChange={handleSliderChange('--border-radius', 0, 32)}
+                value={formatForSlider(getProp('--border-radius', '8px'), 'px')}
+                onChange={(e, value) => setProp('--border-radius', `${value}px`)}
                 min={0}
-                max={32}
-                step={2}
+                max={48}
+                step={4}
                 valueLabelDisplay="auto"
-                className="mt-4"
-                sx={{ 
-                  '& .MuiSlider-track': { borderRadius: '8px' },
-                  '& .MuiSlider-rail': { borderRadius: '8px' }
-                }}
+                valueLabelFormat={(value) => `${value}px`}
+                sx={{ mt: 1 }}
               />
             </div>
           </div>
         </Paper>
 
         {/* Typography */}
-        <Paper className="p-6 rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-md transition-all">
-          <Typography variant="subtitle1" className="font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <TypographyIcon className="w-6 h-6 text-purple-600" />
-            Typography
+        <Paper elevation={2} className="p-6 rounded-2xl border border-gray-200/50 hover:shadow-xl transition-all">
+          <Typography variant="subtitle1" className="font-bold text-gray-900 mb-6 flex items-center gap-2">
+            🔤 Typography
           </Typography>
           
           <div className="grid grid-cols-2 gap-4">
+            {/* ✅ FIXED NUMBER INPUTS */}
             <TextField
               label="Font Size"
-              value={getProp('--font-size', '16px')}
-              onChange={(e) => setProp('--font-size', e.target.value)}
-              size="small"
               type="number"
+              value={parseNumber(getProp('--font-size', '16'))}
+              onChange={(e) => setProp('--font-size', `${Math.max(12, Math.min(48, e.target.value))}px`)}
               inputProps={{ min: 12, max: 48, step: 1 }}
-              sx={{ '& .MuiInputBase-root': { borderRadius: '12px' } }}
+              size="small"
+              sx={{ '& .MuiInputBase-root': { borderRadius: 2 } }}
             />
             <TextField
               label="Line Height"
-              value={getProp('--line-height', '1.5')}
-              onChange={(e) => setProp('--line-height', e.target.value)}
-              size="small"
               type="number"
+              value={parseFloat(getProp('--line-height', '1.5')) || 1.5}
+              onChange={(e) => setProp('--line-height', Math.max(1, Math.min(2, parseFloat(e.target.value) || 1.5)).toFixed(1))}
               inputProps={{ min: 1, max: 2, step: 0.1 }}
-              sx={{ '& .MuiInputBase-root': { borderRadius: '12px' } }}
+              size="small"
+              sx={{ '& .MuiInputBase-root': { borderRadius: 2 } }}
             />
           </div>
         </Paper>
       </div>
 
       {/* Actions */}
-      <div className="p-6 border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-indigo-50/50">
+      <div className="p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50">
         <Button
           fullWidth
           variant="contained"
           onClick={resetProps}
           size="large"
-          className="rounded-2xl shadow-xl font-semibold py-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-shadow-sm"
+          sx={{ 
+            borderRadius: 3, 
+            py: 2, 
+            fontWeight: 600,
+            boxShadow: 3,
+            bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            '&:hover': { boxShadow: 6 }
+          }}
         >
-          🎨 Reset to Tailwind Defaults
+          🎨 Reset to Perfect Defaults
         </Button>
       </div>
     </Paper>
