@@ -1,37 +1,81 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import { useComponentStore } from '../stores/componentStore';
 
 export default function Editor() {
-  const { code, framework, updateCode } = useComponentStore();
+  const { currentComponent, framework, updateCode } = useComponentStore();
+  const [editorCode, setEditorCode] = useState('');
+
+  // ✅ CRITICAL: Sync editor with store changes
+  useEffect(() => {
+    const code = currentComponent?.current_code || '';
+    if (code !== editorCode) {
+      setEditorCode(code);
+    }
+  }, [currentComponent?.current_code]);
+
+  // ✅ DEBOUNCE - Update store + backend after typing stops
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (editorCode !== currentComponent?.current_code) {
+        updateCode(editorCode);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [editorCode]);
+
+  const handleEditorChange = (value) => {
+    setEditorCode(value || '');
+  };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200 bg-white/90 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-3 text-sm font-medium text-gray-700">
-          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-          <span>Code Editor</span>
-          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-mono">
-            {framework.toUpperCase()}
-          </span>
+    <div className="h-full flex flex-col bg-slate-900/90 border-r border-slate-700/50">
+      {/* Header */}
+      <div className="p-4 border-b border-slate-700/50 bg-slate-900/95 backdrop-blur-sm sticky top-0 z-10 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+            </div>
+            <span className="text-sm font-bold text-slate-200 tracking-wide">CODE EDITOR</span>
+            <Chip 
+              label={framework.toUpperCase()} 
+              size="small" 
+              className="!bg-slate-700 !text-slate-200 !font-mono !text-xs border-slate-600 shadow-md" 
+            />
+          </div>
+          <div className="text-xs text-slate-500 font-mono">
+            {currentComponent?.id?.slice(-8) || 'WELCOME'}
+          </div>
         </div>
       </div>
+
+      {/* Monaco Editor */}
       <MonacoEditor
         height="100%"
         language={framework === 'react' ? 'javascript' : 'html'}
         theme="vs-dark"
-        value={code || ''}
-        onChange={updateCode}
+        value={editorCode}
+        onChange={handleEditorChange}
         options={{
           minimap: { enabled: true },
-          fontSize: 14,
+          fontSize: 15,
           scrollBeyondLastLine: false,
           wordWrap: 'on',
           automaticLayout: true,
-          padding: { top: 12, bottom: 12 },
-          fontFamily: 'JetBrains Mono, Consolas, monospace'
+          padding: { top: 16, bottom: 16 },
+          fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
+          fontLigatures: true,
+          lineNumbers: 'on',
+          renderLineHighlight: 'gutter',
+          cursorBlinking: 'smooth',
+          smoothScrolling: true,
+          codeLens: true
         }}
-        className="!border-r-0 !rounded-t-none shadow-none"
+        className="!m-0 !border-none !shadow-none"
       />
     </div>
   );
