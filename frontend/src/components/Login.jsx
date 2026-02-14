@@ -6,6 +6,7 @@ import {
 import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext'; // ✅ Use Auth Context
 
 export default function Login({ onLogin }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -14,27 +15,23 @@ export default function Login({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const { login } = useAuth(); // ✅ Auth context handles redirect
+
+  
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, formData);
-      localStorage.setItem('token', data.token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-      onLogin?.(data.user);
-      navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
-    } finally {
+      e.preventDefault();
+      setLoading(true);
+      setError('');
+      const result = await login(formData);  
+      if (!result.success) {
+        setError(result.error);
+      }
       setLoading(false);
-    }
   };
 
   return (
